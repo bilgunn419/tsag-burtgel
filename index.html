@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="mn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Цаг Бүртгэлийн Систем</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#0E1117;--surface:#161B25;--card:#1C2333;--border:#2A3348;
+    --accent:#4F8EF7;--accent2:#22D3A6;--warn:#F59E0B;--danger:#EF4444;--success:#22C55E;
+    --text:#E8ECF4;--muted:#6B7A99;--sub:#9BA8C0;
+    --font:'DM Sans',sans-serif;--mono:'DM Mono',monospace;
+  }
+  body{background:var(--bg);color:var(--text);font-family:var(--font);min-height:100vh}
+
+  /* ── NAV ── */
+  nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 2rem;
+    display:flex;align-items:center;justify-content:space-between;height:60px;position:sticky;top:0;z-index:100}
+  .logo{font-size:17px;font-weight:600;letter-spacing:-.3px;display:flex;align-items:center;gap:10px}
+  .logo-dot{width:10px;height:10px;background:var(--accent);border-radius:50%;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  nav .nav-right{display:flex;align-items:center;gap:1rem}
+  .clock-live{font-family:var(--mono);font-size:15px;color:var(--accent2);font-weight:500}
+  .badge{background:rgba(79,142,247,.15);color:var(--accent);font-size:12px;padding:4px 10px;border-radius:20px;border:1px solid rgba(79,142,247,.3)}
+
+  /* ── LAYOUT ── */
+  .container{max-width:1200px;margin:0 auto;padding:2rem}
+  .page{display:none}.page.active{display:block}
+
+  /* ── TABS ── */
+  .tabs{display:flex;gap:4px;background:var(--surface);padding:6px;border-radius:12px;margin-bottom:2rem;border:1px solid var(--border)}
+  .tab{flex:1;padding:10px;border:none;background:none;color:var(--muted);font-family:var(--font);font-size:14px;font-weight:500;cursor:pointer;border-radius:8px;transition:all .2s}
+  .tab.active{background:var(--accent);color:#fff}
+  .tab:hover:not(.active){background:var(--card);color:var(--text)}
+
+  /* ── CARDS ── */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.5rem;margin-bottom:1.5rem}
+  .card-title{font-size:13px;font-weight:500;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:1rem}
+
+  /* ── STAT GRID ── */
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:2rem}
+  .stat{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.25rem}
+  .stat-label{font-size:12px;color:var(--muted);margin-bottom:.5rem;font-weight:500}
+  .stat-val{font-size:26px;font-weight:600;font-family:var(--mono)}
+  .stat-val.blue{color:var(--accent)}
+  .stat-val.green{color:var(--accent2)}
+  .stat-val.amber{color:var(--warn)}
+  .stat-val.red{color:var(--danger)}
+  .stat-delta{font-size:12px;color:var(--muted);margin-top:4px}
+
+  /* ── CHECK IN/OUT PANEL ── */
+  .checkin-panel{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:2rem;text-align:center;margin-bottom:2rem}
+  .checkin-status{font-size:13px;color:var(--muted);margin-bottom:.5rem;font-weight:500}
+  .checkin-timer{font-family:var(--mono);font-size:48px;font-weight:500;color:var(--text);letter-spacing:2px;margin:.5rem 0}
+  .checkin-timer.running{color:var(--accent2)}
+  .btn-row{display:flex;gap:1rem;justify-content:center;margin-top:1.5rem;flex-wrap:wrap}
+  .btn{padding:12px 28px;border-radius:10px;border:none;font-family:var(--font);font-size:15px;font-weight:500;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:8px}
+  .btn-primary{background:var(--accent);color:#fff}
+  .btn-primary:hover{background:#3a7de8;transform:translateY(-1px)}
+  .btn-success{background:var(--accent2);color:#011a14}
+  .btn-success:hover{background:#1ab88f;transform:translateY(-1px)}
+  .btn-danger{background:var(--danger);color:#fff}
+  .btn-danger:hover{background:#dc2626;transform:translateY(-1px)}
+  .btn-ghost{background:var(--surface);color:var(--sub);border:1px solid var(--border)}
+  .btn-ghost:hover{background:var(--card);color:var(--text)}
+  .btn:disabled{opacity:.4;cursor:not-allowed;transform:none!important}
+
+  /* ── SELECT / INPUT ── */
+  select,input,textarea{
+    background:var(--surface);color:var(--text);border:1px solid var(--border);
+    border-radius:8px;padding:10px 14px;font-family:var(--font);font-size:14px;width:100%;
+    outline:none;transition:border .2s
+  }
+  select:focus,input:focus,textarea:focus{border-color:var(--accent)}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem}
+  .form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:1rem}
+  .form-label{font-size:13px;color:var(--muted);font-weight:500}
+
+  /* ── TABLE ── */
+  .tbl-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th{background:var(--surface);padding:12px 16px;text-align:left;font-size:12px;font-weight:500;color:var(--muted);letter-spacing:.6px;text-transform:uppercase;border-bottom:1px solid var(--border)}
+  td{padding:13px 16px;border-bottom:1px solid var(--border);color:var(--sub)}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:rgba(255,255,255,.02)}
+  .pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500}
+  .pill.in{background:rgba(34,211,166,.12);color:var(--accent2)}
+  .pill.out{background:rgba(239,68,68,.12);color:var(--danger)}
+  .pill.late{background:rgba(245,158,11,.12);color:var(--warn)}
+  .pill.leave{background:rgba(79,142,247,.12);color:var(--accent)}
+
+  /* ── EMPLOYEE CARDS ── */
+  .emp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:1rem}
+  .emp-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:1.25rem;cursor:pointer;transition:all .2s}
+  .emp-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .emp-avatar{width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;margin-bottom:.75rem}
+  .emp-name{font-size:15px;font-weight:500;color:var(--text);margin-bottom:2px}
+  .emp-dept{font-size:12px;color:var(--muted);margin-bottom:.75rem}
+  .emp-status-row{display:flex;align-items:center;gap:6px;font-size:12px}
+  .status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+  .dot-in{background:var(--accent2)}
+  .dot-out{background:var(--danger)}
+  .dot-leave{background:var(--warn)}
+
+  /* ── OVERTIME BAR ── */
+  .bar-row{display:flex;align-items:center;gap:12px;margin-bottom:.75rem}
+  .bar-label{font-size:13px;color:var(--sub);width:110px;flex-shrink:0}
+  .bar-track{flex:1;height:6px;background:var(--surface);border-radius:3px;overflow:hidden}
+  .bar-fill{height:100%;border-radius:3px;transition:width .6s}
+  .bar-val{font-size:12px;font-family:var(--mono);color:var(--muted);width:48px;text-align:right;flex-shrink:0}
+
+  /* ── LEAVE REQUEST ── */
+  .leave-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1rem 1.25rem;margin-bottom:.75rem;display:flex;align-items:center;gap:1rem}
+  .leave-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+  .leave-info{flex:1}
+  .leave-name{font-size:14px;font-weight:500;color:var(--text)}
+  .leave-meta{font-size:12px;color:var(--muted);margin-top:2px}
+  .leave-actions{display:flex;gap:8px}
+  .btn-sm{padding:6px 14px;font-size:12px;border-radius:7px;border:none;font-family:var(--font);font-weight:500;cursor:pointer;transition:all .2s}
+  .btn-sm.approve{background:rgba(34,211,166,.15);color:var(--accent2)}
+  .btn-sm.approve:hover{background:rgba(34,211,166,.25)}
+  .btn-sm.reject{background:rgba(239,68,68,.12);color:var(--danger)}
+  .btn-sm.reject:hover{background:rgba(239,68,68,.22)}
+
+  /* ── TOAST ── */
+  #toast{position:fixed;bottom:2rem;right:2rem;background:var(--card);border:1px solid var(--border);
+    border-radius:10px;padding:14px 20px;font-size:14px;color:var(--text);
+    opacity:0;transform:translateY(20px);transition:all .3s;z-index:999;max-width:320px}
+  #toast.show{opacity:1;transform:translateY(0)}
+  #toast.toast-success{border-color:var(--accent2);color:var(--accent2)}
+  #toast.toast-warn{border-color:var(--warn);color:var(--warn)}
+  #toast.toast-danger{border-color:var(--danger);color:var(--danger)}
+
+  /* ── MODAL ── */
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center}
+  .modal-bg.open{display:flex}
+  .modal{background:var(--card);border:1px solid var(--border);border-radius:18px;padding:2rem;width:100%;max-width:480px}
+  .modal-title{font-size:17px;font-weight:600;margin-bottom:1.5rem}
+  .modal-footer{display:flex;gap:.75rem;justify-content:flex-end;margin-top:1.5rem}
+
+  @media(max-width:700px){
+    .stat-grid{grid-template-columns:repeat(2,1fr)}
+    .form-row{grid-template-columns:1fr}
+    .checkin-timer{font-size:36px}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">
+    <div class="logo-dot"></div>
+    Цаг Бүртгэл
+  </div>
+  <div class="nav-right">
+    <span class="clock-live" id="navClock">--:--:--</span>
+    <span class="badge" id="navUser">Ажилтан</span>
+  </div>
+</nav>
+
+<div class="container">
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('dash')">Хяналтын самбар</button>
+    <button class="tab" onclick="showTab('checkin')">Ирц бүртгэл</button>
+    <button class="tab" onclick="showTab('employees')">Ажилтнууд</button>
+    <button class="tab" onclick="showTab('report')">Тайлан</button>
+    <button class="tab" onclick="showTab('leave')">Чөлөө / Амралт</button>
+  </div>
+
+  <!-- ══ DASHBOARD ══ -->
+  <div id="tab-dash" class="page active">
+    <div class="stat-grid">
+      <div class="stat">
+        <div class="stat-label">Нийт ажилтан</div>
+        <div class="stat-val blue" id="s-total">12</div>
+        <div class="stat-delta">Идэвхтэй: 12</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Өнөөдөр ирсэн</div>
+        <div class="stat-val green" id="s-present">0</div>
+        <div class="stat-delta">Ирц хувь: <span id="s-rate">0%</span></div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Хоцорсон</div>
+        <div class="stat-val amber" id="s-late">0</div>
+        <div class="stat-delta">09:00-аас хойш</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Чөлөөтэй</div>
+        <div class="stat-val red" id="s-absent">12</div>
+        <div class="stat-delta">Ирээгүй</div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:1.5rem">
+      <div class="card">
+        <div class="card-title">Өнөөдрийн бүртгэл</div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>Ажилтан</th><th>Ирсэн цаг</th><th>Явсан цаг</th><th>Байдал</th></tr></thead>
+            <tbody id="dashLog"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">7 хоногийн ирц</div>
+        <canvas id="weekChart" height="200"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Илүү цаг ашиглалт (энэ сар)</div>
+      <div id="overtimeBars"></div>
+    </div>
+  </div>
+
+  <!-- ══ CHECK IN / OUT ══ -->
+  <div id="tab-checkin" class="page">
+    <div class="card" style="margin-bottom:1.5rem">
+      <div class="card-title">Ажилтан сонгох</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Ажилтан</label>
+          <select id="selEmployee" onchange="onEmpChange()">
+            <option value="">-- Сонгоно уу --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Өнөөдрийн байдал</label>
+          <div id="empTodayStatus" style="padding:10px 14px;background:var(--surface);border-radius:8px;font-size:14px;color:var(--muted)">Сонгоогүй байна</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="checkin-panel">
+      <div class="checkin-status" id="ciStatus">Ирц бүртгэх хүлээж байна</div>
+      <div class="checkin-timer" id="ciTimer" style="font-size:52px">00:00:00</div>
+      <div style="font-size:13px;color:var(--muted);margin-top:.25rem" id="ciDate">--</div>
+      <div class="btn-row">
+        <button class="btn btn-success" id="btnIn" onclick="checkIn()" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+          Ирлээ бүртгэх
+        </button>
+        <button class="btn btn-danger" id="btnOut" onclick="checkOut()" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          Явлаа бүртгэх
+        </button>
+        <button class="btn btn-ghost" onclick="openLeaveModal()">Чөлөө авах</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Бүртгэлийн түүх (сүүлийн 10)</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Огноо</th><th>Ажилтан</th><th>Ирсэн</th><th>Явсан</th><th>Нийт цаг</th><th>Байдал</th></tr></thead>
+          <tbody id="logTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ EMPLOYEES ══ -->
+  <div id="tab-employees" class="page">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem">
+      <input type="text" placeholder="Нэрээр хайх..." style="width:280px" oninput="filterEmps(this.value)">
+      <button class="btn btn-primary" onclick="openAddEmpModal()">+ Ажилтан нэмэх</button>
+    </div>
+    <div class="emp-grid" id="empGrid"></div>
+  </div>
+
+  <!-- ══ REPORT ══ -->
+  <div id="tab-report" class="page">
+    <div class="card">
+      <div class="card-title">Тайлан шүүлтүүр</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Эхлэх огноо</label>
+          <input type="date" id="rptFrom">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Дуусах огноо</label>
+          <input type="date" id="rptTo">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Ажилтан</label>
+          <select id="rptEmp"><option value="">Бүгд</option></select>
+        </div>
+        <div class="form-group">
+          <label class="form-label"></label>
+          <button class="btn btn-primary" onclick="genReport()" style="margin-top:22px;width:100%">Тайлан үзэх</button>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">Тайлангийн хүснэгт</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Огноо</th><th>Ажилтан</th><th>Алба/Хэлтэс</th><th>Ирсэн</th><th>Явсан</th><th>Ажилласан цаг</th><th>Илүү цаг</th><th>Байдал</th></tr></thead>
+          <tbody id="rptTable"></tbody>
+        </table>
+      </div>
+      <div style="display:flex;gap:2rem;margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--border)">
+        <div><div class="stat-label">Нийт ажилласан цаг</div><div class="stat-val blue" id="rptTotalH" style="font-size:22px">0ц</div></div>
+        <div><div class="stat-label">Нийт илүү цаг</div><div class="stat-val amber" id="rptTotalOT" style="font-size:22px">0ц</div></div>
+        <div><div class="stat-label">Дундаж ирц</div><div class="stat-val green" id="rptAvgRate" style="font-size:22px">0%</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ LEAVE ══ -->
+  <div id="tab-leave" class="page">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem">
+      <div class="card">
+        <div class="card-title">Чөлөөний хүсэлт</div>
+        <div class="form-group">
+          <label class="form-label">Ажилтан</label>
+          <select id="lvEmp"></select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Эхлэх огноо</label>
+            <input type="date" id="lvFrom">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Дуусах огноо</label>
+            <input type="date" id="lvTo">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Чөлөөний төрөл</label>
+          <select id="lvType">
+            <option>Ээлжийн амралт</option>
+            <option>Өвчний чөлөө</option>
+            <option>Хувийн чөлөө</option>
+            <option>Жирэмслэлтийн чөлөө</option>
+            <option>Гэрлэлтийн чөлөө</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Шалтгаан</label>
+          <textarea id="lvReason" rows="3" placeholder="Чөлөөний шалтгаан..."></textarea>
+        </div>
+        <button class="btn btn-primary" onclick="submitLeave()" style="width:100%">Хүсэлт илгээх</button>
+      </div>
+      <div class="card">
+        <div class="card-title">Хүлээгдэж буй хүсэлтүүд</div>
+        <div id="leaveList"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:1.5rem">
+      <div class="card-title">Чөлөөний бүртгэл</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Ажилтан</th><th>Төрөл</th><th>Эхлэх</th><th>Дуусах</th><th>Хоног</th><th>Байдал</th></tr></thead>
+          <tbody id="leaveHistTable"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ── MODALS ── -->
+<div class="modal-bg" id="modalLeave">
+  <div class="modal">
+    <div class="modal-title">Чөлөө авах хүсэлт</div>
+    <div class="form-group"><label class="form-label">Чөлөөний төрөл</label><select id="mlType"><option>Ээлжийн амралт</option><option>Өвчний чөлөө</option><option>Хувийн чөлөө</option></select></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Эхлэх</label><input type="date" id="mlFrom"></div>
+      <div class="form-group"><label class="form-label">Дуусах</label><input type="date" id="mlTo"></div>
+    </div>
+    <div class="form-group"><label class="form-label">Шалтгаан</label><textarea id="mlReason" rows="2" placeholder="..."></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalLeave')">Болих</button>
+      <button class="btn btn-primary" onclick="submitLeaveModal()">Илгээх</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalAddEmp">
+  <div class="modal">
+    <div class="modal-title">Шинэ ажилтан нэмэх</div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Овог</label><input type="text" id="aeLastName" placeholder="Дорж"></div>
+      <div class="form-group"><label class="form-label">Нэр</label><input type="text" id="aeFirstName" placeholder="Болд"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Алба / Хэлтэс</label>
+        <select id="aeDept"><option>IT</option><option>Маркетинг</option><option>Санхүү</option><option>HR</option><option>Борлуулалт</option><option>Үйлдвэрлэл</option></select></div>
+      <div class="form-group"><label class="form-label">Албан тушаал</label><input type="text" id="aeRole" placeholder="Инженер"></div>
+    </div>
+    <div class="form-group"><label class="form-label">И-мэйл</label><input type="email" id="aeEmail" placeholder="bold@company.mn"></div>
+    <div class="form-group"><label class="form-label">Ажилд орсон огноо</label><input type="date" id="aeJoined"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeModal('modalAddEmp')">Болих</button>
+      <button class="btn btn-primary" onclick="addEmployee()">Нэмэх</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script>
+// ──────────────────────────────────────────────
+//  DATA
+// ──────────────────────────────────────────────
+const EMPLOYEES = [
+  {id:1,last:'Болд',first:'Баатар',dept:'IT',role:'Ахлах инженер',email:'bold@co.mn',joined:'2021-03-15',color:'#4F8EF7'},
+  {id:2,last:'Нарантуяа',first:'Дорж',dept:'Маркетинг',role:'Маркетингийн менежер',email:'nara@co.mn',joined:'2020-07-01',color:'#22D3A6'},
+  {id:3,last:'Мөнхбаяр',first:'Гантулга',dept:'Санхүү',role:'Санхүүч',email:'munkh@co.mn',joined:'2022-01-10',color:'#F59E0B'},
+  {id:4,last:'Оюунчимэг',first:'Батбаяр',dept:'HR',role:'HR мэргэжилтэн',email:'oyun@co.mn',joined:'2021-11-20',color:'#A78BFA'},
+  {id:5,last:'Энхтайван',first:'Сүрэн',dept:'IT',role:'Хөгжүүлэгч',email:'enkh@co.mn',joined:'2023-02-28',color:'#F472B6'},
+  {id:6,last:'Цэрэндолгор',first:'Лхагва',dept:'Борлуулалт',role:'Борлуулагч',email:'tseren@co.mn',joined:'2020-05-14',color:'#34D399'},
+  {id:7,last:'Ганзориг',first:'Мягмар',dept:'Үйлдвэрлэл',role:'Тоног төхөөрөмжийн инженер',email:'ganz@co.mn',joined:'2019-09-01',color:'#FB923C'},
+  {id:8,last:'Дэлгэрмаа',first:'Жамц',dept:'IT',role:'UI/UX дизайнер',email:'delger@co.mn',joined:'2022-06-15',color:'#60A5FA'},
+  {id:9,last:'Батмөнх',first:'Эрдэнэ',dept:'Маркетинг',role:'Контент мэргэжилтэн',email:'batmunkh@co.mn',joined:'2023-01-05',color:'#4ADE80'},
+  {id:10,last:'Уранчимэг',first:'Дамдин',dept:'Санхүү',role:'Нягтлан бодогч',email:'uran@co.mn',joined:'2021-08-20',color:'#E879F9'},
+  {id:11,last:'Батцэцэг',first:'Намхай',dept:'HR',role:'HR дарга',email:'batsetseg@co.mn',joined:'2018-04-10',color:'#2DD4BF'},
+  {id:12,last:'Ганбаатар',first:'Цогт',dept:'Борлуулалт',role:'Борлуулалтын дарга',email:'ganbaatar@co.mn',joined:'2017-12-01',color:'#FCD34D'},
+];
+
+let logs = [];
+let leaves = [];
+let currentEmpId = null;
+let ciInterval = null;
+let ciStartTime = null;
+
+// ── Simulate some past logs ──
+const today = new Date();
+function makeLog(empId, daysAgo, inH, inM, outH, outM){
+  const d = new Date(today);
+  d.setDate(d.getDate() - daysAgo);
+  const dateStr = d.toISOString().split('T')[0];
+  const inTime = `${String(inH).padStart(2,'0')}:${String(inM).padStart(2,'0')}`;
+  const outTime = outH ? `${String(outH).padStart(2,'0')}:${String(outM).padStart(2,'0')}` : null;
+  const late = inH > 9 || (inH === 9 && inM > 15);
+  const worked = outH ? ((outH*60+outM)-(inH*60+inM))/60 : 0;
+  const overtime = Math.max(0, worked - 8);
+  return {id:Date.now()+Math.random(), empId, date:dateStr, inTime, outTime, late, worked:+worked.toFixed(2), overtime:+overtime.toFixed(2)};
+}
+[1,2,3,4,5,6].forEach(d=>{
+  EMPLOYEES.forEach((e,i)=>{
+    if(Math.random()>.15){
+      const late = Math.random()>.8;
+      const inH = late ? 9+Math.floor(Math.random()*1) : 8;
+      const inM = late ? 20+Math.floor(Math.random()*40) : Math.floor(Math.random()*30);
+      const outH = 17+Math.floor(Math.random()*2);
+      const outM = Math.floor(Math.random()*60);
+      logs.push(makeLog(e.id, d, inH, inM, outH, outM));
+    }
+  });
+});
+
+// ── Leave samples ──
+leaves = [
+  {id:1,empId:3,type:'Ээлжийн амралт',from:'2025-04-28',to:'2025-05-02',reason:'Амралт',status:'pending'},
+  {id:2,empId:7,type:'Өвчний чөлөө',from:'2025-04-25',to:'2025-04-26',reason:'Томуу',status:'pending'},
+  {id:3,empId:9,type:'Хувийн чөлөө',from:'2025-04-22',to:'2025-04-22',reason:'Хувийн хэрэг',status:'approved'},
+  {id:4,empId:11,type:'Гэрлэлтийн чөлөө',from:'2025-04-18',to:'2025-04-22',reason:'Гэрлэлтийн ёслол',status:'approved'},
+];
+
+const todayStr = today.toISOString().split('T')[0];
+const todayLogs = () => logs.filter(l => l.date === todayStr);
+const empById = id => EMPLOYEES.find(e => e.id === id);
+const empName = id => { const e = empById(id); return e ? e.last+' '+e.first : ''; }
+const initial = e => (e.last[0]+e.first[0]).toUpperCase();
+
+// ──────────────────────────────────────────────
+//  CLOCK
+// ──────────────────────────────────────────────
+function updateClock(){
+  const now = new Date();
+  const s = t => String(t).padStart(2,'0');
+  const str = `${s(now.getHours())}:${s(now.getMinutes())}:${s(now.getSeconds())}`;
+  document.getElementById('navClock').textContent = str;
+  document.getElementById('ciDate').textContent =
+    `${now.getFullYear()}/${s(now.getMonth()+1)}/${s(now.getDate())} ${str}`;
+}
+setInterval(updateClock, 1000);
+updateClock();
+
+// ──────────────────────────────────────────────
+//  TABS
+// ──────────────────────────────────────────────
+function showTab(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  event.currentTarget.classList.add('active');
+  if(id==='dash') renderDash();
+  if(id==='employees') renderEmps();
+  if(id==='report') initReport();
+  if(id==='leave') renderLeave();
+}
+
+// ──────────────────────────────────────────────
+//  DASHBOARD
+// ──────────────────────────────────────────────
+let weekChartInst = null;
+function renderDash(){
+  const tl = todayLogs();
+  const present = tl.length;
+  const late = tl.filter(l=>l.late).length;
+  const absent = EMPLOYEES.length - present;
+  document.getElementById('s-total').textContent = EMPLOYEES.length;
+  document.getElementById('s-present').textContent = present;
+  document.getElementById('s-late').textContent = late;
+  document.getElementById('s-absent').textContent = absent;
+  document.getElementById('s-rate').textContent = Math.round(present/EMPLOYEES.length*100)+'%';
+
+  const tbody = document.getElementById('dashLog');
+  if(!tl.length){ tbody.innerHTML=`<tr><td colspan="4" style="color:var(--muted);text-align:center;padding:2rem">Өнөөдрийн бүртгэл байхгүй байна</td></tr>`; }
+  else{
+    tbody.innerHTML = tl.slice(0,8).map(l=>{
+      const e = empById(l.empId);
+      const status = l.late ? `<span class="pill late">Хоцорсон</span>` : `<span class="pill in">Цагт ирсэн</span>`;
+      return `<tr><td style="color:var(--text)">${e.last} ${e.first}</td><td style="font-family:var(--mono)">${l.inTime}</td><td style="font-family:var(--mono)">${l.outTime||'—'}</td><td>${status}</td></tr>`;
+    }).join('');
+  }
+
+  // Week chart
+  const labels = [];
+  const data = [];
+  for(let i=6;i>=0;i--){
+    const d = new Date(today); d.setDate(d.getDate()-i);
+    const ds = d.toISOString().split('T')[0];
+    labels.push(['Ня','Да','Мя','Лх','Пү','Ба','Бя'][d.getDay()]);
+    data.push(logs.filter(l=>l.date===ds).length);
+  }
+  const ctx = document.getElementById('weekChart').getContext('2d');
+  if(weekChartInst) weekChartInst.destroy();
+  weekChartInst = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[{data, backgroundColor:'rgba(79,142,247,.4)', borderColor:'#4F8EF7', borderWidth:1.5, borderRadius:6}] },
+    options:{ plugins:{legend:{display:false}}, scales:{
+      y:{grid:{color:'rgba(255,255,255,.04)'},ticks:{color:'#6B7A99',font:{size:11}}},
+      x:{grid:{display:false},ticks:{color:'#6B7A99',font:{size:11}}}
+    }}
+  });
+
+  // Overtime bars
+  const empOT = EMPLOYEES.map(e=>{
+    const ot = logs.filter(l=>l.empId===e.id).reduce((s,l)=>s+l.overtime,0);
+    return {name:e.first, ot:+ot.toFixed(1)};
+  }).sort((a,b)=>b.ot-a.ot).slice(0,6);
+  const maxOT = Math.max(...empOT.map(e=>e.ot), 1);
+  document.getElementById('overtimeBars').innerHTML = empOT.map(e=>`
+    <div class="bar-row">
+      <div class="bar-label">${e.name}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(e.ot/maxOT*100).toFixed(1)}%;background:var(--warn)"></div></div>
+      <div class="bar-val">${e.ot}ц</div>
+    </div>`).join('');
+}
+
+// ──────────────────────────────────────────────
+//  CHECK IN / OUT
+// ──────────────────────────────────────────────
+function populateEmpSelects(){
+  const opts = EMPLOYEES.map(e=>`<option value="${e.id}">${e.last} ${e.first} — ${e.dept}</option>`).join('');
+  ['selEmployee','rptEmp','lvEmp'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el){ const pref = el === document.getElementById('rptEmp') ? '<option value="">Бүгд</option>' : '';
+      el.innerHTML = `${id==='selEmployee'?'<option value="">-- Сонгоно уу --</option>':''}${pref}${opts}`; }
+  });
+}
+
+function onEmpChange(){
+  const id = +document.getElementById('selEmployee').value;
+  currentEmpId = id || null;
+  document.getElementById('navUser').textContent = id ? empById(id).first : 'Ажилтан';
+  const tl = todayLogs().filter(l=>l.empId===id);
+  const last = tl[tl.length-1];
+  const statusEl = document.getElementById('empTodayStatus');
+  const btnIn = document.getElementById('btnIn');
+  const btnOut = document.getElementById('btnOut');
+  if(!id){ statusEl.textContent='Сонгоогүй байна'; btnIn.disabled=true; btnOut.disabled=true; stopTimer(); return; }
+  if(last && last.outTime){ statusEl.innerHTML=`<span style="color:var(--danger)">Явсан — ${last.outTime}</span>`; btnIn.disabled=true; btnOut.disabled=true; }
+  else if(last && !last.outTime){ statusEl.innerHTML=`<span style="color:var(--accent2)">Ажилд байна — ${last.inTime}-аас</span>`; btnIn.disabled=true; btnOut.disabled=false; resumeTimer(last.inTime); }
+  else{ statusEl.innerHTML=`<span style="color:var(--muted)">Ирц бүртгээгүй</span>`; btnIn.disabled=false; btnOut.disabled=true; stopTimer(); }
+  renderLog();
+}
+
+function checkIn(){
+  if(!currentEmpId){ toast('Ажилтан сонгоно уу','warn'); return; }
+  const now = new Date();
+  const h = now.getHours(), m = now.getMinutes();
+  const inTime = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+  const late = h > 9 || (h === 9 && m > 15);
+  logs.push({id:Date.now(),empId:currentEmpId,date:todayStr,inTime,outTime:null,late,worked:0,overtime:0});
+  ciStartTime = now;
+  startTimer();
+  document.getElementById('btnIn').disabled = true;
+  document.getElementById('btnOut').disabled = false;
+  const e = empById(currentEmpId);
+  const msg = late ? `${e.first} — хоцроод ирлээ бүртгэв (${inTime})` : `${e.first} — ирлээ бүртгэв (${inTime})`;
+  toast(msg, late?'warn':'success');
+  document.getElementById('empTodayStatus').innerHTML = `<span style="color:var(--accent2)">Ажилд байна — ${inTime}-аас</span>`;
+  renderLog();
+}
+
+function checkOut(){
+  if(!currentEmpId){ toast('Ажилтан сонгоно уу','warn'); return; }
+  const tl = logs.filter(l=>l.empId===currentEmpId && l.date===todayStr);
+  const last = tl[tl.length-1];
+  if(!last || last.outTime){ toast('Бүртгэл олдсонгүй','danger'); return; }
+  const now = new Date();
+  const h = now.getHours(), m = now.getMinutes();
+  last.outTime = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+  const [ih,im] = last.inTime.split(':').map(Number);
+  last.worked = +((h*60+m - ih*60-im)/60).toFixed(2);
+  last.overtime = +Math.max(0, last.worked-8).toFixed(2);
+  stopTimer();
+  document.getElementById('btnOut').disabled = true;
+  document.getElementById('btnIn').disabled = true;
+  const e = empById(currentEmpId);
+  toast(`${e.first} — явлаа бүртгэв (${last.outTime})  •  Нийт: ${last.worked}ц`,'success');
+  document.getElementById('empTodayStatus').innerHTML = `<span style="color:var(--danger)">Явсан — ${last.outTime}</span>`;
+  renderLog();
+}
+
+function startTimer(){
+  const el = document.getElementById('ciTimer');
+  el.classList.add('running');
+  el.classList.remove('checkin-timer');
+  document.querySelector('.checkin-status').textContent = 'Ажлын цаг явж байна';
+  if(ciInterval) clearInterval(ciInterval);
+  ciInterval = setInterval(()=>{
+    const diff = Math.floor((Date.now()-ciStartTime)/1000);
+    const h=Math.floor(diff/3600), m=Math.floor((diff%3600)/60), s=diff%60;
+    el.textContent = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  },1000);
+}
+function resumeTimer(inTime){
+  const [ih,im] = inTime.split(':').map(Number);
+  const now = new Date();
+  const elapsed = (now.getHours()*3600+now.getMinutes()*60+now.getSeconds()) - (ih*3600+im*60);
+  ciStartTime = new Date(Date.now() - elapsed*1000);
+  startTimer();
+}
+function stopTimer(){
+  if(ciInterval){ clearInterval(ciInterval); ciInterval=null; }
+  const el = document.getElementById('ciTimer');
+  el.textContent = '00:00:00';
+  el.classList.remove('running');
+  document.querySelector('.checkin-status').textContent = 'Ирц бүртгэх хүлээж байна';
+}
+
+function renderLog(){
+  const recent = [...logs].reverse().slice(0,10);
+  document.getElementById('logTable').innerHTML = recent.map(l=>{
+    const e = empById(l.empId);
+    const st = l.late ? `<span class="pill late">Хоцорсон</span>` : l.outTime ? `<span class="pill out">Явсан</span>` : `<span class="pill in">Ажилд байна</span>`;
+    return `<tr><td>${l.date}</td><td style="color:var(--text)">${e.last} ${e.first}</td><td style="font-family:var(--mono)">${l.inTime}</td><td style="font-family:var(--mono)">${l.outTime||'—'}</td><td style="font-family:var(--mono)">${l.worked||'—'}${l.worked?'ц':''}</td><td>${st}</td></tr>`;
+  }).join('') || `<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:2rem">Бүртгэл байхгүй байна</td></tr>`;
+}
+
+// ──────────────────────────────────────────────
+//  EMPLOYEES
+// ──────────────────────────────────────────────
+function renderEmps(filter=''){
+  const filtered = EMPLOYEES.filter(e=>
+    (e.last+e.first+e.dept).toLowerCase().includes(filter.toLowerCase())
+  );
+  document.getElementById('empGrid').innerHTML = filtered.map(e=>{
+    const tl = todayLogs().find(l=>l.empId===e.id);
+    const onLeave = leaves.find(l=>l.empId===e.id && l.status==='approved' && l.from<=todayStr && l.to>=todayStr);
+    let dotCls='dot-out', statusTxt='Ирсэнгүй';
+    if(onLeave){dotCls='dot-leave';statusTxt='Чөлөөтэй';}
+    else if(tl && !tl.outTime){dotCls='dot-in';statusTxt='Ажилд байна';}
+    else if(tl && tl.outTime){dotCls='dot-out';statusTxt=`Явсан ${tl.outTime}`;}
+    return `<div class="emp-card">
+      <div class="emp-avatar" style="background:${e.color}22;color:${e.color}">${initial(e)}</div>
+      <div class="emp-name">${e.last} ${e.first}</div>
+      <div class="emp-dept">${e.dept} · ${e.role}</div>
+      <div class="emp-status-row"><div class="status-dot ${dotCls}"></div><span style="color:var(--muted)">${statusTxt}</span></div>
+    </div>`;
+  }).join('');
+}
+function filterEmps(v){ renderEmps(v); }
+
+function openAddEmpModal(){
+  document.getElementById('aeJoined').value = todayStr;
+  document.getElementById('modalAddEmp').classList.add('open');
+}
+function addEmployee(){
+  const last = document.getElementById('aeLastName').value.trim();
+  const first = document.getElementById('aeFirstName').value.trim();
+  if(!last||!first){ toast('Нэрийг бөглөнө үү','warn'); return; }
+  const colors = ['#4F8EF7','#22D3A6','#F59E0B','#A78BFA','#F472B6','#34D399'];
+  const newEmp = {
+    id: Date.now(),
+    last, first,
+    dept: document.getElementById('aeDept').value,
+    role: document.getElementById('aeRole').value || 'Ажилтан',
+    email: document.getElementById('aeEmail').value,
+    joined: document.getElementById('aeJoined').value,
+    color: colors[EMPLOYEES.length % colors.length]
+  };
+  EMPLOYEES.push(newEmp);
+  populateEmpSelects();
+  renderEmps();
+  closeModal('modalAddEmp');
+  toast(`${last} ${first} амжилттай нэмэгдлээ`,'success');
+  document.getElementById('s-total').textContent = EMPLOYEES.length;
+}
+
+// ──────────────────────────────────────────────
+//  REPORT
+// ──────────────────────────────────────────────
+function initReport(){
+  const from = new Date(today); from.setDate(from.getDate()-7);
+  document.getElementById('rptFrom').value = from.toISOString().split('T')[0];
+  document.getElementById('rptTo').value = todayStr;
+  genReport();
+}
+function genReport(){
+  const from = document.getElementById('rptFrom').value;
+  const to   = document.getElementById('rptTo').value;
+  const empId = +document.getElementById('rptEmp').value || null;
+  let filtered = logs.filter(l => l.date >= from && l.date <= to);
+  if(empId) filtered = filtered.filter(l=>l.empId===empId);
+  filtered.sort((a,b)=>b.date.localeCompare(a.date)||a.inTime.localeCompare(b.inTime));
+  const totalH = filtered.reduce((s,l)=>s+l.worked,0);
+  const totalOT = filtered.reduce((s,l)=>s+l.overtime,0);
+  const days = new Set(filtered.map(l=>l.date)).size;
+  const avgRate = days ? Math.round(filtered.length / (days * EMPLOYEES.length) * 100) : 0;
+  document.getElementById('rptTotalH').textContent = totalH.toFixed(1)+'ц';
+  document.getElementById('rptTotalOT').textContent = totalOT.toFixed(1)+'ц';
+  document.getElementById('rptAvgRate').textContent = avgRate+'%';
+  document.getElementById('rptTable').innerHTML = filtered.map(l=>{
+    const e = empById(l.empId);
+    const st = l.late ? `<span class="pill late">Хоцорсон</span>` : `<span class="pill in">Цагт</span>`;
+    return `<tr><td>${l.date}</td><td style="color:var(--text)">${e.last} ${e.first}</td><td>${e.dept}</td><td style="font-family:var(--mono)">${l.inTime}</td><td style="font-family:var(--mono)">${l.outTime||'—'}</td><td style="font-family:var(--mono)">${l.worked}ц</td><td style="font-family:var(--mono);color:${l.overtime>0?'var(--warn)':'var(--muted)'}">${l.overtime>0?'+'+l.overtime+'ц':'—'}</td><td>${st}</td></tr>`;
+  }).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:2rem">Өгөгдөл байхгүй байна</td></tr>`;
+}
+
+// ──────────────────────────────────────────────
+//  LEAVE
+// ──────────────────────────────────────────────
+function renderLeave(){
+  const pending = leaves.filter(l=>l.status==='pending');
+  const icons = {'Ээлжийн амралт':'🌴','Өвчний чөлөө':'💊','Хувийн чөлөө':'👤','Жирэмслэлтийн чөлөө':'🤱','Гэрлэлтийн чөлөө':'💍'};
+  document.getElementById('leaveList').innerHTML = pending.length
+    ? pending.map(l=>{
+        const e = empById(l.empId);
+        const days = Math.round((new Date(l.to)-new Date(l.from))/86400000)+1;
+        return `<div class="leave-card">
+          <div class="leave-icon" style="background:rgba(79,142,247,.12)">${icons[l.type]||'📋'}</div>
+          <div class="leave-info">
+            <div class="leave-name">${e.last} ${e.first}</div>
+            <div class="leave-meta">${l.type} · ${l.from} → ${l.to} (${days} хоног)</div>
+          </div>
+          <div class="leave-actions">
+            <button class="btn-sm approve" onclick="leaveAction(${l.id},'approved')">Зөвшөөрөх</button>
+            <button class="btn-sm reject" onclick="leaveAction(${l.id},'rejected')">Татгалзах</button>
+          </div>
+        </div>`;
+      }).join('')
+    : `<div style="color:var(--muted);text-align:center;padding:2rem;font-size:14px">Хүлээгдэж буй хүсэлт байхгүй байна</div>`;
+
+  document.getElementById('leaveHistTable').innerHTML = leaves.map(l=>{
+    const e = empById(l.empId);
+    const days = Math.round((new Date(l.to)-new Date(l.from))/86400000)+1;
+    const st = l.status==='approved'?`<span class="pill in">Зөвшөөрсөн</span>`:l.status==='rejected'?`<span class="pill out">Татгалзсан</span>`:`<span class="pill late">Хүлээгдэж байна</span>`;
+    return `<tr><td style="color:var(--text)">${e.last} ${e.first}</td><td>${l.type}</td><td>${l.from}</td><td>${l.to}</td><td>${days}</td><td>${st}</td></tr>`;
+  }).join('');
+}
+
+function submitLeave(){
+  const empId = +document.getElementById('lvEmp').value;
+  const from = document.getElementById('lvFrom').value;
+  const to = document.getElementById('lvTo').value;
+  if(!empId||!from||!to){ toast('Бүх талбарыг бөглөнө үү','warn'); return; }
+  if(from > to){ toast('Огноо буруу байна','danger'); return; }
+  leaves.unshift({id:Date.now(),empId,type:document.getElementById('lvType').value,from,to,reason:document.getElementById('lvReason').value,status:'pending'});
+  renderLeave();
+  toast('Хүсэлт амжилттай илгээгдлээ','success');
+  document.getElementById('lvReason').value='';
+}
+
+function leaveAction(id, status){
+  const l = leaves.find(x=>x.id===id);
+  if(l){ l.status=status; renderLeave(); toast(status==='approved'?'Чөлөо зөвшөөрлөө':'Татгалзлаа', status==='approved'?'success':'danger'); }
+}
+
+// ── Leave from check-in modal ──
+function openLeaveModal(){
+  if(!currentEmpId){ toast('Ажилтан сонгоно уу','warn'); return; }
+  const now = new Date();
+  document.getElementById('mlFrom').value = now.toISOString().split('T')[0];
+  document.getElementById('mlTo').value = now.toISOString().split('T')[0];
+  document.getElementById('modalLeave').classList.add('open');
+}
+function submitLeaveModal(){
+  const from = document.getElementById('mlFrom').value;
+  const to   = document.getElementById('mlTo').value;
+  if(!from||!to){ toast('Огноо оруулна уу','warn'); return; }
+  leaves.unshift({id:Date.now(),empId:currentEmpId,type:document.getElementById('mlType').value,from,to,reason:document.getElementById('mlReason').value,status:'pending'});
+  closeModal('modalLeave');
+  toast('Чөлөөний хүсэлт илгээгдлээ','success');
+}
+
+// ──────────────────────────────────────────────
+//  MODAL / TOAST HELPERS
+// ──────────────────────────────────────────────
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.modal-bg').forEach(m=>m.addEventListener('click',e=>{ if(e.target===m) m.classList.remove('open'); }));
+
+let toastTimer = null;
+function toast(msg, type='success'){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `show toast-${type}`;
+  if(toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(()=>el.className='',3000);
+}
+
+// ──────────────────────────────────────────────
+//  INIT
+// ──────────────────────────────────────────────
+populateEmpSelects();
+renderDash();
+renderLog();
+renderEmps();
+
+// Set default dates for leave
+const tm = new Date(today);
+document.getElementById('lvFrom').value = todayStr;
+document.getElementById('lvTo').value = todayStr;
+</script>
+</body>
+</html>
